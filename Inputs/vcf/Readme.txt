@@ -6,4 +6,4 @@ Carvalho CS, Forester BR, Mitre SK, Alves R, Imperatriz-Fonseca VL, Ramos SJ, Re
 Maximum Missing Data by Ind = 28.65%
 Maximum Missing Data by Site = 20.00%
 
-minQ=30, maf=0.05, min.meanDP=20x, max.meanDP=200x, thin = 150
+minQ=30, maf=0.05, min.meanDP=20x, max.meanDP=200x, thin = 150 max.alleles=2, min.alleles=2), indels="remove"
