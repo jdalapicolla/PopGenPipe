@@ -1,8 +1,8 @@
-####################### VALE INSTITUTE OF TECHNOLOGY ##########################
+#################### UNIVERSIDADE FEDERAL DA PARAÍBA ##########################
+################ DEPARTAMENTO DE SISTEMÁTICA E ECOLOGIA #######################
+######################     FILTERING SNPs TUTORIAL     ########################
 
-############################     DAPC TUTORIAL     #############################
-
-#By Jeronymo Dalapicolla, 2022
+#By Jeronymo Dalapicolla, 2023: Guia de genômica de populações aplicada a mamíferos Neotropicais
 
 
 ##I. REMOVE ANY OBJECT OR FUNCTION IN THE ENVIRONMENT ----
@@ -33,14 +33,16 @@ if (!require('pcadapt'))      install.packages("pcadapt");           library('pc
 if (!require('sf'))           install.packages("sf");                library('sf')
 
 
+#################### FILTERING USING RAD-PARAMETERS ################################## ----
+
 ####1. LOAD FILES ----
 #A. VCF
-snps_raw = read.vcfR("Inputs/vcf/dioclea.vcf", verbose = T)
+snps_raw = read.vcfR("Inputs/vcf/steerei_raw.vcf", verbose = T)
 snps_raw
 
-#B. Remove individuals before filtering SNPs if you need. In this case we have 1 repeated sample: "CC354_rep_sorted" and we do not have geographical data for "CC087_sorted".
+#B. Remove individuals before filtering SNPs if you need. In this case we will remove two samples as an example:
 colnames(snps_raw@gt)
-remove_ind = c("CC354_rep_sorted",  "CC087_sorted")
+remove_ind = c("MVZ194874", "MVZ194879")
 ind_to_keep = colnames(snps_raw@gt)[!colnames(snps_raw@gt) %in% remove_ind]
 
 snps_raw = snps_raw[samples=ind_to_keep]
@@ -49,7 +51,7 @@ snps_raw
 
 #C. Format a PopMAP. A data frame with two column popmap with the same format as stacks, and the columns must be named 'id' and 'pop'
 # Load information on samples
-geo_data = read.csv("Inputs/metadata/df_dioclea.csv") 
+geo_data = read.csv("Inputs/metadata/coord_steerei.csv") 
 head(geo_data)
 tail(geo_data)
 
@@ -66,12 +68,10 @@ identical(as.character(colnames(snps_raw@gt)[-1]), as.character(geo_data_reorder
 setdiff(as.character(colnames(snps_raw@gt)[-1]), as.character(geo_data_reorder$sample_name))
 setdiff(as.character(geo_data_reorder$sample_name), as.character(colnames(snps_raw@gt)[-1]))
 
-popmap = geo_data_reorder[,c(1,4)] #canga as population/location
+popmap = geo_data_reorder[,c(1,12)] #genetic_cluster as population/location
 names(popmap) = c("id", "pop")
 class(popmap)
 head(popmap)
-
-
 
 
 
@@ -86,69 +86,95 @@ snps_F2 = filter_biallelic(snps_F1)
 snps_F2
 
 
-#C. By Quality
-QUAL = 30 #set a threshold
-snps_to_keep = which(snps_F2@fix[,6] > QUAL)
-snps_F3 = snps_F2[snps_to_keep, ]
+#C. Reduce dataset with filter by Missing Data per site
+missing_by_snp(snps_F2) #verify statistics
+snps_F3 = missing_by_snp(vcfR=snps_F2, cutoff = .6)
 snps_F3
+
+
+#D. Reduce dataset with filter by Missing Data per sample
+missing_by_sample(vcfR=snps_F3, popmap = popmap)  #verify statistics
+snps_F4 = missing_by_sample(vcfR=snps_F3, cutoff = .6)
+snps_F4
+
+popmap = popmap[popmap$id %in% colnames(snps_F1@gt),]
+head(popmap)
+
+
+#C. By Quality
+#QUAL = 30 #set a threshold
+#snps_to_keep = which(snps_F4@fix[,6] > QUAL)
+#snps_F5 = snps_F4[snps_to_keep, ]
+#snps_F5
+snps_F5 = snps_F4
 
 
 #D. By Minimum Depth by site
 #Usually you do not have information on Genotype quality, if you have you can use gq filter
-snps_F4 = hard_filter(vcfR = snps_F3, depth = 20, gq = NULL)
-snps_F4
-
-
-#E. By Maximum Depth by site
-snps_F5 = max_depth(snps_F4, maxdepth = 200)
-snps_F5
-
-
-#F. By Allele Balance:
-snps_F6 = filter_allele_balance(snps_F5)
+snps_F6 = hard_filter(vcfR = snps_F5, depth = 4, gq = NULL)
 snps_F6
 
 
-#G. by MAC or MAF
-#estimate MAC by MAF:
-MAF_1 = (length(colnames(snps_F6@gt)[-1])*1)/100
-MAF_3 = (length(colnames(snps_F6@gt)[-1])*3)/100
-MAF_5 = (length(colnames(snps_F6@gt)[-1])*5)/100
-MAF_10 = (length(colnames(snps_F6@gt)[-1])*10)/100
-
-snps_F7 = min_mac(snps_F6, min.mac = MAF_5)
+#E. By Maximum Depth by site
+#dp by site:
+dp = extract.gt(snps_F6, element = "DP", as.numeric=TRUE)
+head(dp)
+dp_site = c()
+for (i in 1:length(rownames(dp))){dp_site = c(dp_site, mean(dp[i,], na.rm = T))}
+maxdep = median(dp_site, na.rm = T) + (2*sd(dp_site, na.rm = T))
+maxdep
+#filter by max depth
+snps_F7 = max_depth(snps_F6, maxdepth = maxdep)
 snps_F7
 
 
-#H. By Missing Data per site
-missing_by_snp(vcfR=snps_F7) #verify statistics
+#F. by MAC or MAF
+#estimate MAC by MAF:
+MAF_1 = (length(colnames(snps_F7@gt)[-1])*1)/100
+MAF_3 = (length(colnames(snps_F7@gt)[-1])*3)/100
+MAF_5 = (length(colnames(snps_F7@gt)[-1])*5)/100
+MAF_10 = (length(colnames(snps_F7@gt)[-1])*10)/100
 
-snps_F8 = missing_by_snp(vcfR=snps_F7, cutoff = .7)
+snps_F8 = min_mac(snps_F7, min.mac = MAF_5)
 snps_F8
 
 
-#H. By Missing Data per sample
-missing_by_sample(vcfR=snps_F7, popmap = popmap)  #verify statistics
-snps_F9 = missing_by_sample(vcfR=snps_F8, cutoff = .4)
+
+#G. By Allele Balance:
+snps_F9 = filter_allele_balance(snps_F8, min.ratio = 0.2, max.ratio = 0.8)
 snps_F9
 
-popmap = popmap[popmap$id %in% colnames(snps_F9@gt),]
+
+#H. By Missing Data per site
+missing_by_snp(vcfR=snps_F9) #verify statistics
+snps_F10 = missing_by_snp(vcfR=snps_F9, cutoff = .8)
+snps_F10
+
+
+#I. By Missing Data per sample
+missing_by_sample(vcfR=snps_F10, popmap = popmap)  #verify statistics
+snps_F11 = missing_by_sample(vcfR=snps_F10, cutoff = .2)
+snps_F11
+
+popmap = popmap[popmap$id %in% colnames(snps_F11@gt),]
 head(popmap)
 
 
 
-#I. By Linkage Disequilibrium (LD). If you will use NeEstimate do not use this step, jump to #J.
-snps_F10 = distance_thin(vcfR = snps_F9, min.distance = 150) #1 SNP by contig/Chrom
-snps_F10
-
-#For NeEstimate
-snps_F10 = snps_F9
+#J. By Linkage Disequilibrium (LD). If you will use NeEstimate do not use this step, jump to #J.
+snps_F12 = distance_thin(vcfR = snps_F11, min.distance = 150) #1 SNP by contig/Chrom
+snps_F12
 
 
-#J. By Hardy Weinberg Equilibrium (HWE)
+#For NeEstimate use this:
+#snps_F12 = snps_F11
+
+
+#L. By Hardy Weinberg Equilibrium (HWE)
 #convert to genlight
-gl_vcf = vcfR2genlight(snps_F10)
+gl_vcf = vcfR2genlight(snps_F12)
 gl_vcf
+
 #add pop/local information
 pop(gl_vcf) = popmap$pop
 popNames(gl_vcf)
@@ -168,18 +194,18 @@ gl_vcf_fil = gl.filter.hwe(
   verbose = NULL
 )
 
+head(gl_vcf_fil@loc.names)
+head(gl_vcf@loc.names)
 
 #keep in vcf the same snps in the gl filtered object.
-filtered_snps = separate(as.data.frame(gl_vcf_fil@loc.names), col = 1, into = c("CHROM1", "CHROM2", "SNP", "POS"), sep = "_" )
-head(filtered_snps)
-snps_F11= snps_F10[as.integer(filtered_snps$POS), ]
-snps_F11
+filtered_snps = which(gl_vcf@loc.names %in% gl_vcf_fil@loc.names)
+snps_F13= snps_F12[filtered_snps, ]
+snps_F13
 
 
-
-#J. By outliers SNPs - possibly under selection (Adapt)
+#M. By outliers SNPs - possibly under selection (Adapt)
 #convert VCF to Genotypes
-genotypes= t(extract.gt(snps_F11, element = "GT", mask = FALSE, as.numeric = TRUE, return.alleles = FALSE, IDtoRowNames = TRUE, extract = TRUE, convertNA = TRUE))
+genotypes= t(extract.gt(snps_F13, element = "GT", mask = FALSE, as.numeric = TRUE, return.alleles = FALSE, IDtoRowNames = TRUE, extract = TRUE, convertNA = TRUE))
 #check:
 genotypes[1:5,1:5]
 row.names(genotypes)
@@ -187,14 +213,14 @@ row.names(genotypes)
 #Convert Genotypes to LFMM:
 dim(genotypes)
 ((sum(is.na(genotypes)))/(dim(genotypes)[1]*dim(genotypes)[2]))*100
-#13.25316%  #Amount of missing data
+#4.59%  #Amount of missing data
 
 genotypes[is.na(genotypes)] <- 9 #The missing genotypes have to be encoded with the value 9
 genotypes[1:10,1:10]
-write.lfmm(genotypes,"Inputs/lfmm/F11.lfmm")
+write.lfmm(genotypes,"Inputs/lfmm/F13.lfmm")
 
 #Load LFMM:
-lfmm_input = read.lfmm("Inputs/lfmm/F11.lfmm")
+lfmm_input = read.lfmm("Inputs/lfmm/F13.lfmm")
 class(lfmm_input)
 
 #Convert LFMM to a PCadapt matrix and run the analyses
@@ -203,13 +229,13 @@ pcadapt.test = lfmm_input %>%
   pcadapt(., K=10, ploidy=2)
 
 #"Cattell's Rule" for interpreting the scree plot (PC to the left of the flat line)
-plot(pcadapt.test, option="screeplot") #2 PCs
+plot(pcadapt.test, option="screeplot") #3 PCs
 plot(pcadapt.test, option="scores") #PC1 and PC2 #3 clusters
 plot(pcadapt.test, option = "scores", i = 3, j = 2) #PC2 and PC3 # 3 clusters
 plot(pcadapt.test, option = "scores", i = 3, j = 4) #PC3 and PC4 # 1 cluster
 plot(pcadapt.test, option = "scores", i = 5, j = 4) #PC5 and PC4 # 1 cluster
 plot(pcadapt.test, option = "scores", i = 5, j = 6) #PC5 and PC6 # 1 cluster
-#With PC3 
+#With PC3 we see a clear clustering pattern 
 #So we can use 3 PCs, K = 3.
 
 #K = 3. Run PCadapt again. Test K and see the p-values graphs
@@ -227,7 +253,7 @@ hist(pcadapt.test$pvalues, xlab = "p-values", main = NULL, breaks = 50, col = "o
 plot(pcadapt.test, option = "stat.distribution")
 
 #Choosing a cutoff for outlier detection
-pcadapt.test$gif #  1.445385
+pcadapt.test$gif #   1.584102
 # The GIF indicates how well the test is "calibrated".
 # It corrects for inflation of the test score at each locus, which can occur when population
 # structure or other confounding factors are not appropriately accounted for in the model.
@@ -241,45 +267,64 @@ pcadapt.test$gif #  1.445385
 qval = qvalue(pcadapt.test$pvalues)$qvalues
 alpha = 0.1
 outliers1 = which(qval < alpha)
-length(outliers1) #It will be eliminated 9 SNPs
+length(outliers1) #It will be eliminated 3769 SNPs
 
 #Benjamini-Hochberg Procedure
 padj = p.adjust(pcadapt.test$pvalues, method="BH")
 alpha = 0.1
 outliers2 = which(padj < alpha)
-length(outliers2) #It will be eliminated 9 SNPs
+length(outliers2) #It will be eliminated 3769 SNPs
 
 #Bonferroni correction
 padj2 = p.adjust(pcadapt.test$pvalues, method="bonferroni")
 alpha = 0.1
 outliers3 = which(padj2 < alpha)
-length(outliers3) #It will be eliminated 5 SNPs
+length(outliers3) #It will be eliminated 3008 SNPs
 
 
 #Choose one approach to eliminate outlier SNPs. In the case Benjamini-Hochberg Procedure the "outliers2"
 #Remove SNPs with adaptive signals
-snps_to_keep = which(!c(1:dim(snps_F11@gt)[1]) %in% outliers2)
-snps_F12 = snps_F11[snps_to_keep, ]
-snps_F12
+snps_to_keep = which(!c(1:dim(snps_F13@gt)[1]) %in% outliers2)
+snps_F14 = snps_F13[snps_to_keep, ]
+snps_F14
 
+
+#N. Remove by missing data for 20%
+missing_by_sample(vcfR=snps_F14, popmap = popmap)  #verify statistics
+snps_F15 = missing_by_sample(vcfR=snps_F14, cutoff = .2)
+snps_F15
+
+missing_by_snp(vcfR=snps_F15)  #verify statistics
+snps_F16 = missing_by_snp(vcfR=snps_F15, cutoff = .8)
+snps_F16
+
+
+#O. By monomorphic SNPs:
+gl_vcf_final = vcfR2genlight(snps_F16)
+gl_vcf_final2 = gl.filter.monomorphs(gl_vcf_final)
+gl_vcf_final2
+
+filtered_snps2 = which(gl_vcf_final@loc.names %in% gl_vcf_final2@loc.names)
+snps_F17= snps_F16[filtered_snps2, ]
+snps_F17
 
 
 
 ###3. SAVE VCFs ----
-#A. For Adaptive analyses save without HWE and PCadapt filters (snps_F10)
-write.vcf(snps_F10, "Inputs/vcf/dioclea_Adapt.vcf")
+#A. For Adaptive analyses save without HWE and PCadapt filters (snps_F8)
+write.vcf(snps_F12, "Inputs/vcf/steerei_Adapt.vcf")
 
 #B. For Neutral SNPs save final VCF (snps_F12)
-write.vcf(snps_F12, "Inputs/vcf/dioclea_Neutral.vcf")
+write.vcf(snps_F17, "Inputs/vcf/steerei_Neutral.vcf") 
 
-#C. For NeEstimate you need save without the filter by linkage disequilibrium (snps_F9), so jump from step F09 to F11
-write.vcf(snps_F12, "Inputs/vcf/dioclea_Ne.vcf")
+#C. For NeEstimate you need save without the filter by linkage disequilibrium, jump step #J
+write.vcf(snps_F17, "Inputs/vcf/steerei_Ne.vcf")
 
 
 
 ###4. ESTIMATE BASICS METRICS FROM THE VCFs ----
 #A. Choose a vcfR
-vcf_subset = snps_F12
+vcf_subset = snps_F17
 
 #B. Estimate average depth by ind and site:
 dp = extract.gt(vcf_subset, element = "DP", as.numeric=TRUE)
@@ -288,16 +333,16 @@ head(dp)
 #Individual
 dp_ind = c()
 for (i in 1:length(colnames(dp))){dp_ind = c(dp_ind, mean(dp[,i], na.rm = T))}
-mean(dp_ind) #137.1958
-max(dp_ind) #365.3462
-min(dp_ind) #65.49631
+mean(dp_ind) #33.80
+max(dp_ind) #50.81
+min(dp_ind) #17.97
 
 #Site
 dp_site = c()
 for (i in 1:length(rownames(dp))){dp_site = c(dp_site, mean(dp[i,], na.rm = T))}
-mean(dp_site) #141.2887
-max(dp_site) #211.963
-min(dp_site) #41.84746
+mean(dp_site) #34.106
+max(dp_site) #54.786
+min(dp_site) #12
 
 
 
@@ -306,22 +351,22 @@ MD = extract.gt(vcf_subset, element = "GT", as.numeric=TRUE)
 head(MD)
 
 #Total
-((sum(is.na(MD)))/(dim(MD)[1]*dim(MD)[2]))*100 #13.9821
+((sum(is.na(MD)))/(dim(MD)[1]*dim(MD)[2]))*100 #5.17
 
 
 #Individual
 MD_ind = c()
 for (i in 1:length(colnames(MD))){MD_ind = c(MD_ind, sum(is.na(MD[,i]))/length(rownames(MD))*100)}
-mean(MD_ind) #13.9821
-max(MD_ind) #39.98021
-min(MD_ind) #1.583375
+mean(MD_ind) #5.17
+max(MD_ind) #14.37
+min(MD_ind) #1.31
 
 
 #site
 MD_site = c()
 for (i in 1:length(rownames(MD))){MD_site = c(MD_site, sum(is.na(MD[i,]))/length(colnames(MD))*100)}
-mean(MD_site) # 13.9821
-max(MD_site) #28.57143
+mean(MD_site) #5.17
+max(MD_site) #18.75
 min(MD_site) #0
 
 #END
