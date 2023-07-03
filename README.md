@@ -11,7 +11,7 @@ Population Genomics Pipeline using SNPs data in VCF files from Reduced-represent
 
 > [Carvalho CS, Forester BR, Mitre SK, Alves R, Imperatriz-Fonseca VL, Ramos SJ, Resende-Moreira LC, Siqueira JO, Trevelin LC, Caldeira CF, Gastauer M, Jaffé R. 2019. Combining genotype, phenotype, and environmental data to delineate site-adjusted provenance strategies for ecological restoration. Molecular Ecology Resources, 21(1): 44-58](https://doi.org/10.1111/1755-0998.13191) 
 
-### How to Use:
+## How to Use:
 Software used in this pipeline:
 
 [RStudio version 2022.02.3 Build 492](https://posit.co/)
@@ -19,7 +19,7 @@ Software used in this pipeline:
 [R version 4.3.0](https://www.r-project.org/)
 
 
-#### Folders
+## Folders:
 __Inputs__: _.vcf_ files, reference file for _Dioclea_ dataset, and _.csv_ files with geographical coordinates for both datasets
     
 __Filtering__: R scripts for filtering neutral SNPs. 
