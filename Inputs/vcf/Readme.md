@@ -2,6 +2,7 @@
 
 ## Dataset "dioclea.vcf"
 _Dioclea apurensis_ (Fabaceae)
+> 167 individuals, 9,857 SNPs, and 12,2% of missing data.
 
 ## Dataset "steerei_raw.vcf"
 _Proechimys steerei_ (Rodentia: Echimyidae)
