@@ -26,6 +26,6 @@ __Filtering__: R scripts for filtering neutral SNPs.
 
 __Genetic Structure__: R scripts for basic genomic structure analyses _PCA | sNMF | DPAC | TESS3_
 
-__Genetic Diversity and Distance__: R scripts for basic genomic diversity _Ht | Ho | FIS | FST | Relatedness_
+__Genetic Diversity and Distance__: R scripts for basic genomic diversity _Ht | Ho | FIS | FST_
 
 
