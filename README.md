@@ -20,22 +20,14 @@ Software used in this pipeline:
 
 
 #### Folders
-01.Inputs:
+__Inputs__: _.vcf_ files, reference file for _Dioclea_ dataset, and _.csv_ files with geographical coordinates for both datasets
     
-    /vcf:
-    
-    metadata:
-    
-02. Filtering:
+__Filtering__: R scripts for filtering neutral SNPs. 
 
-03. Genetic Structure: PCA | sNMF | DPAC | TESS3
+__Genetic Structure__: R scripts for basic genomic structure analyses _PCA | sNMF | DPAC | TESS3_
 
-04. Genetic Diversity: Ht | Ho | FIS | SNV | pi
+__Genetic Diversity__: R scripts for basic genomic diversity _Ht | Ho | FIS_
 
-05. Genetic Distance: FST | Shared Alleles | Relatedness | Kinship | PCAdistance
+__Genetic Distance__: R scripts for basic genomic distance _FST | Shared Alleles | Relatedness | PCAdistance_
 
-06. Isolation-by-Distance: Mantel Tests | Procrustes
 
-07. Fine-Scale Spatial Strucuture: Correlogram | sPCA
-
-08. Connectivity: PopGraphs ! EMMS
