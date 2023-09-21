@@ -289,7 +289,7 @@ p = ggplot(data=df, mapping = aes(x=factor(Sample_ID),factor(pop),
                     labels= labels_snmf) +
   theme_minimal() +
   guides(fill=guide_legend(title="Populations"))+
-  scale_x_discrete(limits=df$sample_name[1:n_sample], labels =df$pop[1:n_sample], guide = guide_axis(n.dodge=1)) + #guide_axis(n.dodge=1) number of lines in labels
+  scale_x_discrete(limits=df$Sample_ID[1:n_sample], labels =df$pop[1:n_sample], guide = guide_axis(n.dodge=1)) + #guide_axis(n.dodge=1) number of lines in labels
   xlab("") + ylab("")
 
 #check
