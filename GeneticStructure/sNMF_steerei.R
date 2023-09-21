@@ -272,16 +272,16 @@ labels_snmf = c("POP1 - Madeira River", "POP2 - Bolivia", "POP3 - Juruá River")
 coeff
 #col 'pop' is my Locality information
 df = geo_data_final %>%
-  dplyr::select(sample_name, pop, Adx_Coeff_1, Adx_Coeff_2, Adx_Coeff_3) %>% #edit for the number of coeff you found!
+  dplyr::select(Sample_ID, pop, Adx_Coeff_1, Adx_Coeff_2, Adx_Coeff_3) %>% #edit for the number of coeff you found!
   dplyr::arrange(pop) %>%
-  melt(., id.vars=c("sample_name", "pop"))
+  melt(., id.vars=c("Sample_ID", "pop"))
 head(df)
 
 #define sample size:
 n_sample = 16
 
 #define graph
-p = ggplot(data=df, mapping = aes(x=factor(sample_name),factor(pop),
+p = ggplot(data=df, mapping = aes(x=factor(Sample_ID),factor(pop),
                                   y= value*100,
                                   fill = factor(variable))) +
   geom_bar(stat="identity", width = 1, size=0.3, colour="black") +
