@@ -2,27 +2,24 @@
 ################ DEPARTAMENTO DE SISTEMÁTICA E ECOLOGIA #######################
 ######################     FILTERING SNPs TUTORIAL     ########################
 
-#By Jeronymo Dalapicolla, 2023: Guia de genômica de populações aplicada a mamíferos Neotropicais
+#Jeronymo Dalapicolla, 2023: Guia de genômica de populações aplicada a mamíferos Neotropicais
 
 
 
 
 ##I. REMOVE ANY OBJECT OR FUNCTION IN THE ENVIRONMENT ----
+##I. REMOVA QUALQUER OBJETO OU FUNÇÃO DO AMBIENTE ----
 rm(list=ls())
 
 
 ##II. CHOOSE A FOLDER FOR RUNNING THE ANALYSES. THE FILES MUST BE THERE! ----
+##II. ESCOLHA UMA PASTA PARA EXECUTAR AS ANÁLISES. OS ARQUIVOS DEVEM ESTAR LÁ! ----
 # IN RStudio GO TO  SESSION >> SET WORKING DIRECTORY >> CHOOSE DIRECTORY.. IN RStudio TOOL BAR OR USE THE SHORCUT CTRL+SHIFT+H
+# NO RStudio VÁ PARA A SESSÃO >> DEFINIR DIRETÓRIO DE TRABALHO >> ESCOLHA O DIRETÓRIO.. NA BARRA DE FERRAMENTAS DO RStudio OU USE O ATALHO CTRL+SHIFT+H
 
 
 ##III. INSTALL AND LOAD THE PACKAGES ----
-#Basic Packages for installation:
-if (!require('remotes'))      install.packages('remotes');           library('remotes')
-if (!require('BiocManager'))  install.packages('BiocManager');       library('BiocManager')
-if (!require('pacman'))       install.packages('pacman');            library('pacman')
-if (!require('devtools'))     install.packages('devtools');          library('devtools')
-
-#From CRAN R:
+##III. INSTALAR E CARREGAR OS PACOTES ----
 if (!require('tidyverse'))    install.packages("tidyverse");         library('tidyverse')
 if (!require('vcfR'))         install.packages("vcfR");              library('vcfR')
 if (!require('dartR'))        install.packages("dartR");             library('dartR')
@@ -31,29 +28,36 @@ if (!require('adegenet'))     install.packages("adegenet");          library('ad
 
 
 
-#### 1.GENETIC STRUCTURE USING DAPC ---- 
+#### 1.GENETIC STRUCTURE USING DAPC ----
+#### 1.ESTRUTURAÇÃO GENÉTICA USANDO DAPC
 #DA Discriminant Analysis focus on between-group variability, while neglecting within-group variation. this method also allows for a probabilistic assignment of individuals to each group, as in Bayesian clustering methods. the method requires the number of variables (alleles) to be less than the number of observations (individuals). This condition is generally not fulfilled in Single Nucleotide Polymorphism (SNP) or re-sequencing datasets. Second, it is hampered by correlations between variables, which necessarily occur in allele frequencies due to the constant-row sum constraint [i.e., compositional data]. Uncorrelated variables will be even more blatant in the presence of linkage disequilibrium
 #DAPC relies on data transformation using PCA as a prior step to DA, which ensures that variables submitted to DA are perfectly uncorrelated, and that their number is less than that of analysed individuals (1:10 proportion). Without implying a necessary loss of genetic information, this transformation allows DA to be applied to any genetic data.
 #K-means relies on the same model as DA to partition genetic variation into a between-group and a within-group component, and attempts to find groups that minimize the latter. We use Bayesian Information Criterion (BIC) to assess the best supported model, and therefore the number and nature of clusters.
 
-#A. Load neutral .vcf file after removing outlier SNPs:
+#DA A Análise Discriminante concentra-se na variabilidade entre grupos, enquanto negligencia a variação dentro do grupo. Este método também permite uma atribuição probabilística de indivíduos a cada grupo, como nos métodos de agrupamento bayesiano. o método exige que o número de variáveis (alelos) seja menor que o número de observações (indivíduos). Esta condição geralmente não é atendida no Polimorfismo de Nucleotídeo Único (SNP) ou em conjuntos de dados de re-sequenciamento. Em segundo lugar, é dificultado por correlações entre variáveis, que ocorrem necessariamente em frequências alélicas devido à restrição de soma de linhas constantes [isto é, dados de composição]. Variáveis não correlacionadas serão ainda mais evidentes na presença de desequilíbrio de ligação
+#DAPC conta com a transformação de dados utilizando PCA como etapa anterior à AD, o que garante que as variáveis submetidas à AD sejam perfeitamente não correlacionadas e que seu número seja menor que o dos indivíduos analisados. Sem implicar uma perda necessária de informação genética, esta transformação permite que a DA seja aplicada a quaisquer dados genéticos.
+#K-means depende do mesmo modelo que DA para particionar a variação genética em um componente entre grupos e dentro do grupo, e tenta encontrar grupos que minimizem o último. Usamos o Critério de Informação Bayesiano (BIC) para avaliar o modelo mais bem suportado e, portanto, o número e a natureza dos clusters.
+
+
+
+#A. Load neutral .vcf file after removing outlier SNPs: #A. Carregar o arquivo .vcf após a etapa de filtragem, só com SNPs neutros:
 vcf = read.vcfR("Inputs/vcf/steerei_Neutral.vcf", verbose = FALSE)
 project = "steerei_Neutral"
 
-#B. Convert "VCF" to "GENIND"
+#B. Convert "VCF" to "GENIND" #Converter o arquivo vcf para genind
 input = vcfR2genind(vcf)
 input
 
 
-#C. Perform a PCA to choose the number of PC in the DAPC:
+#C. Perform a PCA to choose the number of PC in the DAPC: #Executar uma PCA para escolher o número de PCs usados na DAPC
 input_scaled = scaleGen (input, center = TRUE, scale = TRUE, NA.method = "mean")
-pca_input = dudi.pca(input_scaled, center = TRUE, scannf = FALSE)
+pca_input = dudi.pca(input_scaled, scale = FALSE, center = TRUE, scannf = FALSE, nf = length(row.names(input@tab))-1)
 
-#D. % of PC variation
+#D. % of PC variation 
 pc_pca = as.data.frame(pca_input$eig)
 pc_pca[,2] = (pc_pca/sum(pc_pca))*100
 
-#D1. Rule of 100% of variance:
+#D1. Rule of 100% of variance: 
 index_100 = length(rownames(input@tab))-1
 index_100 # number of PC to reach to 100% of explained variance
 
@@ -88,7 +92,7 @@ set.seed(13) #set a seed
 grp = find.clusters(input, max.n.clust=10, scale = TRUE) # center=T by default.
 head(grp$grp, 10)
 grp$size
-#[1]  7 4 5
+
 
 
 #F. Select the ’best’ BIC is often indicated by an below in the curve of BIC values as a function of k
@@ -101,20 +105,8 @@ p = ggplot(data=dapc_df, mapping = aes(x=K,y= BIC)) +
   geom_segment(aes(x=K[1],y= BIC[1], xend =K[10] , yend =BIC[10]), size = 0.5, linetype = 'dashed') +
   geom_line() +
   geom_point(size=4, shape=21, fill="red", color="darkred") +
+  theme_bw()+
   scale_x_continuous(breaks = c(1:10)) +
-  theme_bw() +
-  theme(panel.grid.major = element_blank(),
-        panel.grid.minor = element_blank(),
-        panel.border = element_rect(colour = "black", linewidth = 0.5),
-        axis.title.y = element_text(size=12, face="bold", family = "Helvetica", color = "Black"),
-        axis.title.x = element_text(size=12, face="bold", family = "Helvetica", color = "Black"),
-        axis.text.x = element_text(size=10, family = "Helvetica", color = "Black"),
-        axis.text.y = element_text(size=10, family = "Helvetica", color = "Black"),
-        plot.tag = element_text(size=16, face="bold", family = "Helvetica", color = "Black"),
-        legend.text = element_text(size=10, family = "Helvetica", color = "Black"),
-        legend.title= element_text(size=12, face="bold", family = "Helvetica", color = "Black"),
-        legend.title.align = 0.5,
-        legend.box.background = element_rect(colour = "black", linewidth = 0.5)) +
   xlab("Best K") + ylab("Bayesian Information Criterion (BIC)") #set labels
 
 #check the graphics
@@ -143,15 +135,14 @@ DAPC3 = paste0("DAPC3 (",round((number_PCs$DAPC$eig[3]/sum(number_PCs$DAPC$eig))
 #J. Verify plots and define the group colors and names:
 #plot graph
 table(grp$grp)
-#1 2 3 
-#7 4 5 
-rownames(input@tab)[which(grp$grp == 1)] #Juruá
-rownames(input@tab)[which(grp$grp == 2)] #Bolivia
-rownames(input@tab)[which(grp$grp == 3)] #Madeira
+
+rownames(input@tab)[which(grp$grp == 1)] #Bolivia
+rownames(input@tab)[which(grp$grp == 2)] #Madeira
+rownames(input@tab)[which(grp$grp == 3)] #Juruá
 
 #define colors and name for populations
-colors_dapc = c('yellow', 'blue', "red" ) #color for the four genetic cluster
-labels_dapc = c("Juruá River", "Bolivia", "Madeira River") #name for the four genetic cluster
+colors_dapc = c('blue', 'red', "yellow" ) #color for the four genetic cluster
+labels_dapc = c("Bolivia", "Madeira", "Juruá") #name for the four genetic cluster
 
 #ggplot graph:
 df_dapc = number_PCs$DAPC$ind.coord %>%
@@ -164,18 +155,6 @@ d_gg = ggplot(df_dapc, aes(x=LD1, y=LD2, fill=POP))+
   scale_fill_manual(values= colors_dapc,
                     labels= labels_dapc) +
   theme_bw()+
-  theme(panel.grid.major = element_blank(),
-        panel.grid.minor = element_blank(),
-        panel.border = element_rect(colour = "black", linewidth = 0.5),
-        axis.title.y = element_text(size=12, face="bold", family = "Helvetica", color = "Black"),
-        axis.title.x = element_text(size=12, face="bold", family = "Helvetica", color = "Black"),
-        axis.text.x = element_text(size=10, family = "Helvetica", color = "Black"),
-        axis.text.y = element_text(size=10, family = "Helvetica", color = "Black"),
-        plot.tag = element_text(size=16, face="bold", family = "Helvetica", color = "Black"),
-        legend.text = element_text(size=10, family = "Helvetica", color = "Black"),
-        legend.title= element_text(size=12, face="bold", family = "Helvetica", color = "Black"),
-        legend.title.align = 0.5,
-        legend.box.background = element_rect(colour = "black", linewidth = 0.5)) +
   guides(fill=guide_legend(title="Populations"))+
   xlab(DAPC1) + ylab(DAPC2) #set labels
 
@@ -216,3 +195,4 @@ as.data.frame(grp$grp)
 write.csv(as.data.frame(grp$grp), paste0("Results/DAPC/DAPC_clusters_", project, ".csv"))
 
 #END
+#FIM
