@@ -2,7 +2,7 @@
 ################ DEPARTAMENTO DE SISTEMÁTICA E ECOLOGIA #######################
 ######################     FILTERING SNPs TUTORIAL     ########################
 
-#By Jeronymo Dalapicolla, 2023: Guia de genômica de populações aplicada a mamíferos Neotropicais
+#Jeronymo Dalapicolla, 2023: Guia de genômica de populações aplicada a mamíferos Neotropicais
 
 
 
@@ -242,16 +242,16 @@ tail(geo_data)
 
 #select rows in the same order than vcf
 genomic_order = as.data.frame(sample_name_vcf)
-names(genomic_order) = "sample_name"
+names(genomic_order) = "Sample_ID"
 
 geo_data_reorder = semi_join(geo_data, genomic_order)
 geo_data_reorder = inner_join(genomic_order, geo_data_reorder)
 head(geo_data_reorder)
 
 #verify the order:
-identical(as.character(sample_name_vcf), as.character(geo_data_reorder$sample_name))
-setdiff(as.character(sample_name_vcf), as.character(geo_data_reorder$sample_name))
-setdiff(as.character(geo_data_reorder$sample_name), as.character(sample_name_vcf))
+identical(as.character(sample_name_vcf), as.character(geo_data_reorder$Sample_ID))
+setdiff(as.character(sample_name_vcf), as.character(geo_data_reorder$Sample_ID))
+setdiff(as.character(geo_data_reorder$Sample_ID), as.character(sample_name_vcf))
 
 #data frame final:
 geo_data_final = cbind(geo_data_reorder, Qmat)
@@ -288,17 +288,6 @@ p = ggplot(data=df, mapping = aes(x=factor(sample_name),factor(pop),
   scale_fill_manual(values= colors_snmf,
                     labels= labels_snmf) +
   theme_minimal() +
-  theme(panel.grid.major = element_blank(), panel.grid.minor = element_blank(),
-        panel.background = element_blank(), axis.line = element_blank(),
-        axis.title.y = element_text(size=12, face="bold", family = "Helvetica", color = "Black"),
-        axis.title.x = element_text(size=12, face="bold", family = "Helvetica", color = "Black"),
-        axis.text.x = element_text(size=10, family = "Helvetica", color = "Black", angle = 90, vjust = 0.5, hjust=1), #orientation of labels
-        axis.text.y = element_text(size=10, family = "Helvetica", color = "Black"),
-        plot.tag = element_text(size=16, face="bold", family = "Helvetica", color = "Black"),
-        legend.text = element_text(size=10, family = "Helvetica", color = "Black"),
-        legend.title= element_text(size=12, face="bold", family = "Helvetica", color = "Black"),
-        legend.title.align = 0.5,
-        legend.box.background = element_rect(colour = "black", linewidth = 0.5)) +
   guides(fill=guide_legend(title="Populations"))+
   scale_x_discrete(limits=df$sample_name[1:n_sample], labels =df$pop[1:n_sample], guide = guide_axis(n.dodge=1)) + #guide_axis(n.dodge=1) number of lines in labels
   xlab("") + ylab("")
