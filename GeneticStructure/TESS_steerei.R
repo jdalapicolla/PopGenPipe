@@ -34,6 +34,16 @@ if (!require('raster'))       install.packages("raster");            library('ra
 
 
 
+##IV. AUXILIARY FUNCTIONS ----
+create_dir = function(dir_names){
+  for (i in 1:length(dir_names)){
+    if (dir.exists(file.path(getwd(),dir_names[i])) == FALSE) {dir.create(dir_names[i], recursive = T, showWarnings = T) }
+    else (print (paste0(dir_names[i], " has already been created. Be careful you can overwrite files")))}
+  
+}
+
+
+
 #### 2. LOAD FILES ----
 # Following this tutorial: https://bcm-uga.github.io/TESS3_encho_sen/articles/main-vignette.html
 #A. Load VCF
@@ -54,15 +64,15 @@ tail(geo_data)
 
 #D. Filter data according to the genetic samples order
 genomic_order = as.data.frame(row.names(genotypes))
-names(genomic_order) = "sample_name"
+names(genomic_order) = "Sample_ID"
 
 geo_data_reorder = semi_join(geo_data, genomic_order)
 geo_data_reorder = inner_join(genomic_order, geo_data_reorder)
 head(geo_data_reorder)
 
-identical(as.character(row.names(genotypes)), as.character(geo_data_reorder$sample_name))
-setdiff(as.character(row.names(genotypes)), as.character(geo_data_reorder$sample_name))
-setdiff(as.character(geo_data_reorder$sample_name), as.character(row.names(genotypes)))
+identical(as.character(row.names(genotypes)), as.character(geo_data_reorder$Sample_ID))
+setdiff(as.character(row.names(genotypes)), as.character(geo_data_reorder$Sample_ID))
+setdiff(as.character(geo_data_reorder$Sample_ID), as.character(row.names(genotypes)))
 
 
 #E. Create a Matrix with long and lat 
@@ -86,11 +96,15 @@ CPU = 4 #Number of cores for run in parallel
 mask = 0.05 #proportion of masked values
 
 set.seed(13)
+path = "./Results/TESS/"
+if (dir.exists(file.path(getwd(), path)) == FALSE)
+{dir.create(path, recursive = T, showWarnings = F)} else (print (paste0(path, " has already been created. Be careful with overwritting")))
+
 for (i in lambda_values){
   tess3.ls = tess3(genotypes, coord = coordinates, K = K, mask = mask, lambda = i,
                    method = "projected.ls", max.iteration = 5000, rep = replications,
                    ploidy = ploidy, openMP.core.num = CPU)
-  save(tess3.ls, file = paste0("./Results/TESS/Tess3ls_Lambda_", i,"_", geno_name, ".RData"))
+  save(tess3.ls, file = paste0("./Results/TESS/Tess3ls_Lambda_", i,"_", geno_name, ".RData")) 
   
 }
 
@@ -197,17 +211,17 @@ write.csv(geo_data_final, paste0("Results/TESS/ancestry_coef_TESS_", geno_name, 
 #D. Create a dataframe (df) for ggplot2, all localities
 coeff
 df = geo_data_final %>%
-  dplyr::select(sample_name, pop, Adx_Coeff_1, Adx_Coeff_2, Adx_Coeff_3) %>%
+  dplyr::select(Sample_ID, pop, Adx_Coeff_1, Adx_Coeff_2, Adx_Coeff_3) %>%
   dplyr::arrange(pop) %>%
-  melt(., id.vars=c("sample_name", "pop"))
+  melt(., id.vars=c("Sample_ID", "pop"))
 head(df)
-names(df) = c("sample_name", "pop", "variable", "value")
+names(df) = c("Sample_ID", "pop", "variable", "value")
 head(df)
 
 #number of samples
 nsample = 16
 
-p = ggplot(data=df, mapping = aes(x=factor(sample_name),factor(pop),
+p = ggplot(data=df, mapping = aes(x=factor(Sample_ID),factor(pop),
                                   y= value*100,
                                   fill = factor(variable))) +
   geom_bar(stat="identity", width = 1, size=0.3, colour="black") +
@@ -217,7 +231,7 @@ p = ggplot(data=df, mapping = aes(x=factor(sample_name),factor(pop),
   theme(panel.grid.major = element_blank(), panel.grid.minor = element_blank(),
         panel.background = element_blank(),
         axis.text.x = element_text(angle = 90, vjust = 0.5, hjust=1)) +
-  scale_x_discrete(limits=df$sample_name[1:nsample], labels =df$pop[1:nsample], guide = guide_axis(n.dodge=1)) +
+  scale_x_discrete(limits=df$Sample_ID[1:nsample], labels =df$pop[1:nsample], guide = guide_axis(n.dodge=1)) +
   guides(fill=guide_legend(title="Populations"))+
   xlab("") + ylab("")
 #check
