@@ -3,7 +3,7 @@
 Population Genomics Pipeline using SNPs data in VCF files from Reduced-representation sequencing (RRS), such as, Genotype-by-Sequencing (GBS) and Restriction-site Associated DNA Sequencing (RAD-Seq).
 
 ## How to Cite this Pipeline:
-> Dalapicolla, J. 2023. Guia para genômica de populações aplicada a mamíferos Neotropicais: do delineamento experimental às análises básicas com SNPs. Brazilian Journal of Mammalogy. Submtt. DOI:
+> [Dalapicolla, J. 2023. Guia para genômica de populações aplicada a mamíferos Neotropicais: do delineamento experimental às análises básicas com  polimorfismos de nucleotídeo único (SNPs). Brazilian Journal of Mammalogy e92: 1-20.](https://doi.org/10.32673/bjm.vie92.120)
 
 
 ## How to Cite the Datasets:
